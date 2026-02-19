@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: rebus-puzzle-game
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node server.js

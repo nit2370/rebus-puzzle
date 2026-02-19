@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Host a Rebus Puzzle Game</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="particles" id="particles"></div>
+
+  <!-- Step 1: Upload Puzzles -->
+  <main class="host-page" id="setupView">
+    <a href="index.html" class="back-link">← Back to Home</a>
+    <div class="host-header">
+      <h1 class="page-title">🎯 Host a Game</h1>
+      <p class="page-subtitle">Upload your rebus puzzle images and set the correct answers</p>
+    </div>
+
+    <div class="upload-zone" id="uploadZone">
+      <div class="upload-icon">📁</div>
+      <p class="upload-text">Drag & drop puzzle images here</p>
+      <p class="upload-hint">or click to browse (max 5MB each)</p>
+      <input type="file" id="fileInput" multiple accept="image/*" hidden>
+    </div>
+
+    <div class="puzzle-list" id="puzzleList"></div>
+
+    <div class="config-section" id="configSection" style="display:none;">
+      <h2 class="section-title">⚙️ Game Settings</h2>
+      <div class="config-grid">
+        <div class="config-item">
+          <label>Rounds</label>
+          <select id="roundsSelect" class="select-field">
+            <option value="all" selected>All Puzzles</option>
+            <option value="3">3 Rounds</option>
+            <option value="5">5 Rounds</option>
+            <option value="10">10 Rounds</option>
+            <option value="15">15 Rounds</option>
+            <option value="20">20 Rounds</option>
+          </select>
+        </div>
+        <div class="config-item">
+          <label>Time per Round</label>
+          <select id="timeSelect" class="select-field">
+            <option value="15">15 seconds</option>
+            <option value="30" selected>30 seconds</option>
+            <option value="45">45 seconds</option>
+            <option value="60">60 seconds</option>
+            <option value="90">90 seconds</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn btn-primary btn-lg btn-full" id="createGameBtn">
+        🚀 Create Game
+      </button>
+    </div>
+
+    <div class="loading-overlay" id="loadingOverlay" style="display:none;">
+      <div class="spinner"></div>
+      <p>Creating your game...</p>
+    </div>
+  </main>
+
+  <!-- Step 2: Lobby (after creating game) -->
+  <main class="lobby-page" id="lobbyView" style="display:none;">
+    <div class="lobby-card">
+      <h1 class="page-title">🎮 Game Lobby</h1>
+      <div class="room-code-display">
+        <span class="room-label">Room Code</span>
+        <span class="room-code" id="lobbyRoomCode">------</span>
+      </div>
+      <div class="share-section">
+        <input type="text" id="shareLink" class="input-field share-input" readonly>
+        <button class="btn btn-secondary" id="copyLinkBtn">📋 Copy Link</button>
+      </div>
+      <p class="share-hint">Share this link with your friends to join!</p>
+
+      <div class="player-list-section">
+        <h3>👥 Players (<span id="lobbyPlayerCount">0</span>)</h3>
+        <div class="player-grid" id="lobbyPlayerList"></div>
+      </div>
+
+      <div class="lobby-config">
+        <p><strong>Puzzles:</strong> <span id="lobbyPuzzleCount">0</span> | <strong>Rounds:</strong> <span id="lobbyRounds">0</span> | <strong>Time:</strong> <span id="lobbyTime">30s</span></p>
+      </div>
+
+      <button class="btn btn-primary btn-lg btn-full" id="startGameBtn">
+        🎬 Start Game
+      </button>
+    </div>
+  </main>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    // Particles
+    const particlesEl = document.getElementById('particles');
+    for (let i = 0; i < 20; i++) {
+      const p = document.createElement('div');
+      p.className = 'particle';
+      p.style.left = Math.random() * 100 + '%';
+      p.style.top = Math.random() * 100 + '%';
+      p.style.animationDelay = Math.random() * 6 + 's';
+      p.style.animationDuration = (4 + Math.random() * 6) + 's';
+      p.style.width = p.style.height = (4 + Math.random() * 8) + 'px';
+      particlesEl.appendChild(p);
+    }
+
+    let puzzles = [];
+    let roomCode = null;
+    let socket = null;
+
+    const uploadZone = document.getElementById('uploadZone');
+    const fileInput = document.getElementById('fileInput');
+    const puzzleList = document.getElementById('puzzleList');
+    const configSection = document.getElementById('configSection');
+
+    // Drag & Drop
+    uploadZone.addEventListener('click', () => fileInput.click());
+    uploadZone.addEventListener('dragover', (e) => { e.preventDefault(); uploadZone.classList.add('dragover'); });
+    uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
+    uploadZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      uploadZone.classList.remove('dragover');
+      handleFiles(e.dataTransfer.files);
+    });
+    fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
+
+    function handleFiles(files) {
+      Array.from(files).forEach(file => {
+        if (!file.type.startsWith('image/')) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          puzzles.push({ file, preview: e.target.result, answer: '' });
+          renderPuzzles();
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function renderPuzzles() {
+      puzzleList.innerHTML = '';
+      puzzles.forEach((p, i) => {
+        const card = document.createElement('div');
+        card.className = 'puzzle-card';
+        card.innerHTML = `
+          <div class="puzzle-preview">
+            <img src="${p.preview}" alt="Puzzle ${i + 1}">
+            <span class="puzzle-num">#${i + 1}</span>
+          </div>
+          <div class="puzzle-info">
+            <input type="text" class="input-field answer-input" placeholder="Enter the answer..." 
+                   value="${p.answer}" data-index="${i}">
+            <button class="btn btn-danger btn-sm remove-btn" data-index="${i}">✕</button>
+          </div>
+        `;
+        puzzleList.appendChild(card);
+      });
+
+      // Bind events
+      document.querySelectorAll('.answer-input').forEach(input => {
+        input.addEventListener('input', (e) => {
+          puzzles[e.target.dataset.index].answer = e.target.value;
+        });
+      });
+      document.querySelectorAll('.remove-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          puzzles.splice(e.target.dataset.index, 1);
+          renderPuzzles();
+        });
+      });
+
+      configSection.style.display = puzzles.length > 0 ? 'block' : 'none';
+    }
+
+    // Create Game
+    document.getElementById('createGameBtn').addEventListener('click', async () => {
+      const unanswered = puzzles.filter(p => !p.answer.trim());
+      if (puzzles.length === 0) return alert('Please upload at least one puzzle image!');
+      if (unanswered.length > 0) return alert('Please provide answers for all puzzles!');
+
+      const loading = document.getElementById('loadingOverlay');
+      loading.style.display = 'flex';
+
+      try {
+        // Create room
+        const res = await fetch('/api/create-room', { method: 'POST' });
+        const { roomCode: code } = await res.json();
+        roomCode = code;
+
+        // Upload images
+        const formData = new FormData();
+        const answers = [];
+        puzzles.forEach((p, i) => {
+          formData.append('images', p.file);
+          answers.push(p.answer.trim());
+        });
+        formData.append('answers', JSON.stringify(answers));
+
+        await fetch(`/api/upload/${roomCode}`, { method: 'POST', body: formData });
+
+        // Connect as host
+        socket = io();
+        const sessionId = localStorage.getItem('rebus_host_session') || crypto.randomUUID();
+        localStorage.setItem('rebus_host_session', sessionId);
+
+        socket.emit('host-join', { roomCode, sessionId });
+
+        socket.on('host-joined', () => {
+          showLobby();
+        });
+
+        socket.on('player-joined', ({ playerName, playerCount, players }) => {
+          document.getElementById('lobbyPlayerCount').textContent = playerCount;
+          renderLobbyPlayers(players);
+        });
+
+        socket.on('player-left', ({ playerName, playerCount, players }) => {
+          document.getElementById('lobbyPlayerCount').textContent = playerCount;
+          renderLobbyPlayers(players);
+        });
+
+      } catch (err) {
+        alert('Failed to create game: ' + err.message);
+      } finally {
+        loading.style.display = 'none';
+      }
+    });
+
+    function showLobby() {
+      document.getElementById('setupView').style.display = 'none';
+      document.getElementById('lobbyView').style.display = 'flex';
+
+      document.getElementById('lobbyRoomCode').textContent = roomCode;
+      const link = `${window.location.origin}/game.html?room=${roomCode}`;
+      document.getElementById('shareLink').value = link;
+
+      const roundsVal = document.getElementById('roundsSelect').value;
+      const rounds = roundsVal === 'all' ? puzzles.length : parseInt(roundsVal);
+      const time = document.getElementById('timeSelect').value;
+
+      document.getElementById('lobbyPuzzleCount').textContent = puzzles.length;
+      document.getElementById('lobbyRounds').textContent = Math.min(rounds, puzzles.length);
+      document.getElementById('lobbyTime').textContent = time + 's';
+    }
+
+    function renderLobbyPlayers(players) {
+      const list = document.getElementById('lobbyPlayerList');
+      list.innerHTML = players.map(p => `
+        <div class="player-tag ${p.online ? '' : 'offline'}">
+          <span class="player-dot ${p.online ? 'online' : 'offline'}"></span>
+          ${p.name}
+        </div>
+      `).join('');
+    }
+
+    document.getElementById('copyLinkBtn').addEventListener('click', () => {
+      const link = document.getElementById('shareLink').value;
+      navigator.clipboard.writeText(link);
+      const btn = document.getElementById('copyLinkBtn');
+      btn.textContent = '✅ Copied!';
+      setTimeout(() => btn.textContent = '📋 Copy Link', 2000);
+    });
+
+    document.getElementById('startGameBtn').addEventListener('click', () => {
+      const roundsVal = document.getElementById('roundsSelect').value;
+      const rounds = roundsVal === 'all' ? puzzles.length : parseInt(roundsVal);
+      const timePerRound = parseInt(document.getElementById('timeSelect').value);
+
+      socket.emit('start-game', { roomCode, rounds: Math.min(rounds, puzzles.length), timePerRound });
+
+      // Redirect host to game page
+      window.location.href = `game.html?room=${roomCode}&host=true`;
+    });
+  </script>
+</body>
+</html>

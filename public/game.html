@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rebus Puzzle — Play</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="particles" id="particles"></div>
+  <canvas id="confettiCanvas"></canvas>
+
+  <!-- Join View -->
+  <main class="game-page" id="joinView">
+    <div class="join-card">
+      <div class="logo-badge">🧩</div>
+      <h1 class="page-title">Join the <span class="gradient-text">Puzzle</span></h1>
+      <p id="roomInfo" class="room-info">Loading room info...</p>
+      <div class="join-inputs">
+        <input type="text" id="playerNameInput" class="input-field" placeholder="Your Name" maxlength="20" autocomplete="off">
+        <button class="btn btn-primary btn-lg btn-full" id="joinGameBtn">Join Game</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- Lobby View -->
+  <main class="game-page" id="lobbyView" style="display:none;">
+    <div class="lobby-card">
+      <h1 class="page-title">🎮 Waiting for Host</h1>
+      <div class="room-code-display">
+        <span class="room-label">Room Code</span>
+        <span class="room-code" id="lobbyCode">------</span>
+      </div>
+      <div class="player-list-section">
+        <h3>👥 Players (<span id="playerCount">0</span>)</h3>
+        <div class="player-grid" id="playerList"></div>
+      </div>
+      <p class="waiting-text">
+        <span class="pulse-dot"></span> Waiting for host to start the game...
+      </p>
+      <!-- Host controls (shown only for host) -->
+      <button class="btn btn-primary btn-lg btn-full" id="hostStartBtn" style="display:none;">
+        🎬 Start Game
+      </button>
+    </div>
+  </main>
+
+  <!-- Playing View -->
+  <main class="game-page" id="playView" style="display:none;">
+    <div class="play-layout">
+      <div class="game-header">
+        <div class="round-info">
+          Round <span id="currentRound">1</span> / <span id="totalRounds">10</span>
+        </div>
+        <div class="timer-container">
+          <div class="timer-bar" id="timerBar"></div>
+          <span class="timer-text" id="timerText">30s</span>
+        </div>
+      </div>
+
+      <div class="puzzle-display">
+        <img id="puzzleImage" src="" alt="Rebus Puzzle" class="puzzle-img">
+      </div>
+
+      <div class="hint-area" id="hintArea" style="display:none;">
+        <div class="hint-badge">💡 Hint</div>
+        <span id="hintText"></span>
+      </div>
+
+      <div class="guess-section" id="guessSection">
+        <div class="input-group">
+          <input type="text" id="guessInput" class="input-field guess-input" placeholder="Type your answer..." autocomplete="off">
+          <button class="btn btn-primary" id="submitGuessBtn">Submit</button>
+        </div>
+        <div class="guess-feedback" id="guessFeedback"></div>
+      </div>
+
+      <div class="answered-section" id="answeredSection" style="display:none;">
+        <div class="answered-badge">✅ You answered!</div>
+        <p class="answered-score">+<span id="earnedScore">0</span> points</p>
+      </div>
+
+      <div class="mini-leaderboard" id="miniLeaderboard">
+        <h4>🏆 Leaderboard</h4>
+        <div class="mini-lb-list" id="miniLbList"></div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Round Results View -->
+  <main class="game-page" id="roundResultView" style="display:none;">
+    <div class="result-card">
+      <h2 class="result-title">Round <span id="resultRound">1</span> Complete!</h2>
+      <div class="correct-answer-reveal">
+        <span class="answer-label">The answer was</span>
+        <span class="answer-text" id="correctAnswerText">---</span>
+      </div>
+      <div class="result-leaderboard" id="resultLeaderboard"></div>
+      <p class="next-round-text" id="nextRoundText">Next round starting soon...</p>
+    </div>
+  </main>
+
+  <!-- Game Over View -->
+  <main class="game-page" id="gameOverView" style="display:none;">
+    <div class="gameover-card">
+      <h1 class="gameover-title">🎉 Game Over!</h1>
+
+      <div class="podium-section" id="podiumSection"></div>
+
+      <div class="final-leaderboard" id="finalLeaderboard"></div>
+
+      <div class="gameover-actions">
+        <a href="index.html" class="btn btn-primary btn-lg">Play Again</a>
+      </div>
+    </div>
+  </main>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

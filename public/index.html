@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rebus Puzzle — Multiplayer Brain Teaser</title>
+  <meta name="description" content="Challenge your friends with rebus puzzles! Host a game, share the link, and compete in real-time.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="particles" id="particles"></div>
+
+  <main class="landing">
+    <div class="hero">
+      <div class="logo-badge">🧩</div>
+      <h1 class="hero-title">Rebus <span class="gradient-text">Puzzle</span></h1>
+      <p class="hero-subtitle">Challenge your friends to decode picture puzzles in real-time. Upload your own puzzles, share a link, and compete!</p>
+
+      <div class="hero-actions">
+        <a href="host.html" class="btn btn-primary btn-lg">
+          <span class="btn-icon">🎯</span> Host a Game
+        </a>
+        <button class="btn btn-secondary btn-lg" id="joinBtn">
+          <span class="btn-icon">🚀</span> Join a Game
+        </button>
+      </div>
+
+      <div class="join-form" id="joinForm" style="display:none;">
+        <div class="input-group">
+          <input type="text" id="roomCodeInput" placeholder="Enter Room Code" maxlength="6" class="input-field" autocomplete="off">
+          <button class="btn btn-primary" id="goJoinBtn">Join</button>
+        </div>
+      </div>
+    </div>
+
+    <section class="features">
+      <div class="feature-card">
+        <div class="feature-icon">⚡</div>
+        <h3>Time-Based Scoring</h3>
+        <p>Answer faster for more points. Up to 1000 pts for lightning-fast guesses!</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🏆</div>
+        <h3>Live Leaderboard</h3>
+        <p>Watch rankings update in real-time with a beautiful podium finish.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">💡</div>
+        <h3>Smart Hints</h3>
+        <p>Stuck? Hints appear automatically as time runs out to keep everyone engaged.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">✨</div>
+        <h3>Typo Tolerant</h3>
+        <p>Our smart matching system accepts minor typos and awards partial credit.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔗</div>
+        <h3>Session Persistence</h3>
+        <p>Disconnected? Rejoin without losing your points — we remember you.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">👥</div>
+        <h3>50 Player Rooms</h3>
+        <p>Play with up to 50 friends at once with real-time multiplayer sync.</p>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <p>Built with ❤️ — Share the link with friends &amp; have fun!</p>
+    </footer>
+  </main>
+
+  <script>
+    // Animated particles
+    const particlesEl = document.getElementById('particles');
+    for (let i = 0; i < 30; i++) {
+      const p = document.createElement('div');
+      p.className = 'particle';
+      p.style.left = Math.random() * 100 + '%';
+      p.style.top = Math.random() * 100 + '%';
+      p.style.animationDelay = Math.random() * 6 + 's';
+      p.style.animationDuration = (4 + Math.random() * 6) + 's';
+      p.style.width = p.style.height = (4 + Math.random() * 8) + 'px';
+      particlesEl.appendChild(p);
+    }
+
+    // Join form toggle
+    const joinBtn = document.getElementById('joinBtn');
+    const joinForm = document.getElementById('joinForm');
+    joinBtn.addEventListener('click', () => {
+      joinForm.style.display = joinForm.style.display === 'none' ? 'flex' : 'none';
+      document.getElementById('roomCodeInput').focus();
+    });
+
+    document.getElementById('goJoinBtn').addEventListener('click', () => {
+      const code = document.getElementById('roomCodeInput').value.trim().toUpperCase();
+      if (code.length >= 4) window.location.href = `game.html?room=${code}`;
+    });
+
+    document.getElementById('roomCodeInput').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') document.getElementById('goJoinBtn').click();
+    });
+
+    // Check URL for direct room join
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('room')) {
+      window.location.href = `game.html?room=${params.get('room')}`;
+    }
+  </script>
+</body>
+</html>
