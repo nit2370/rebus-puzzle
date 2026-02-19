@@ -80,10 +80,18 @@ function calcScore(timeRemaining, totalTime, matchType, similarity) {
   const timeRatio = timeRemaining / totalTime;
   let base = Math.round(1000 * timeRatio);
   base = Math.max(base, 50); // minimum 50 for any correct
+
   if (matchType === 'partial') {
-    return Math.round(base * 0.5 * similarity);
+    // Partial credit: 50% × similarity
+    return Math.max(10, Math.round(base * 0.5 * similarity));
   }
-  return base;
+
+  // Correct but with typos: scale by similarity
+  // Exact match (similarity=1) → 100% score
+  // 1 typo (~0.89 similarity) → ~90% score
+  // 2 typos (~0.78 similarity) → ~80% score
+  const accuracyMultiplier = 0.5 + 0.5 * similarity; // maps 0→0.5, 1→1.0
+  return Math.max(25, Math.round(base * accuracyMultiplier));
 }
 
 function generateHints(answer) {
