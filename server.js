@@ -88,16 +88,11 @@ function calcScore(timeRemaining, totalTime, matchType, similarity) {
 
 function generateHints(answer) {
   const words = answer.split(/\s+/);
-  // Hint 1 (50%): first letter + word count
-  const hint1Letters = words.map(w => w[0].toUpperCase() + '_'.repeat(w.length - 1)).join(' ');
-  const hint1 = `${hint1Letters} (${words.length} word${words.length > 1 ? 's' : ''})`;
+  // Only hint: first letter of each word + word count
+  const hintLetters = words.map(w => w[0].toUpperCase() + ' _'.repeat(w.length - 1)).join('  ');
+  const hint1 = `${hintLetters} — ${words.length} word${words.length > 1 ? 's' : ''}, ${answer.length} letters`;
 
-  // Hint 2 (75%): alternating letters revealed
-  const hint2 = words.map(w =>
-    w.split('').map((c, i) => i % 2 === 0 ? c.toUpperCase() : '_').join('')
-  ).join(' ');
-
-  return { hint1, hint2 };
+  return { hint1 };
 }
 
 function getLeaderboard(room) {
@@ -404,22 +399,17 @@ function startRound(room) {
 
   io.to(room.code).emit('leaderboard-update', getLeaderboard(room));
 
-  // Hint at 50%
-  const hint1Timer = setTimeout(() => {
+  // Single hint at 60% time elapsed (first character only)
+  const hintTimer = setTimeout(() => {
     io.to(room.code).emit('hint', { level: 1, text: puzzle.hints.hint1 });
-  }, room.timePerRound * 500);
-
-  // Hint at 75%
-  const hint2Timer = setTimeout(() => {
-    io.to(room.code).emit('hint', { level: 2, text: puzzle.hints.hint2 });
-  }, room.timePerRound * 750);
+  }, room.timePerRound * 600);
 
   // Round end
   const roundTimer = setTimeout(() => {
     endRound(room);
   }, room.timePerRound * 1000);
 
-  room.hintTimers = [hint1Timer, hint2Timer];
+  room.hintTimers = [hintTimer];
   room.roundTimer = roundTimer;
 }
 

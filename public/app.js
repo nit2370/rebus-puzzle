@@ -2,7 +2,6 @@
     // ─── State ───
     const params = new URLSearchParams(window.location.search);
     const roomCode = params.get('room')?.toUpperCase();
-    const isHost = params.get('host') === 'true';
 
     let socket = null;
     let playerId = null;
@@ -45,17 +44,8 @@
             if (!res.ok) throw new Error('Room not found');
             const data = await res.json();
 
-
             document.getElementById('roomInfo').textContent =
                 `Room ${roomCode} • ${data.playerCount} player${data.playerCount !== 1 ? 's' : ''} online`;
-
-            // Auto-join for host
-            if (isHost) {
-                connectSocket();
-                const hostSession = localStorage.getItem('rebus_host_session');
-                socket.emit('join-room', { roomCode, playerName: '🎯 Host', sessionId: hostSession });
-                return;
-            }
 
             // Auto-rejoin if session exists
             if (sessionId) {
@@ -111,10 +101,6 @@
             renderPlayerList(players);
         });
 
-        socket.on('host-promoted', () => {
-            document.getElementById('hostStartBtn').style.display = 'block';
-        });
-
         socket.on('new-round', (data) => {
             showView('playView');
             startPlayRound(data);
@@ -168,11 +154,6 @@
 
         socket.emit('join-room', { roomCode, playerName: name, sessionId });
     }
-
-    // Host start button
-    document.getElementById('hostStartBtn').addEventListener('click', () => {
-        socket.emit('start-game', { roomCode, rounds: 999, timePerRound: 30 });
-    });
 
     // ─── Players List ───
     function renderPlayerList(players) {

@@ -5,8 +5,130 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Host a Rebus Puzzle Game</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
+  <style>
+    /* Host Dashboard Styles */
+    .host-dashboard {
+      max-width: 900px; width: 100%; margin: 0 auto;
+      display: flex; flex-direction: column; gap: 1.25rem;
+      padding: 1.5rem 1rem; animation: cardReveal 0.5s ease;
+    }
+    .dash-header {
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 1rem;
+    }
+    .dash-title { font-size: 1.5rem; font-family: var(--font-display); }
+    .dash-badge {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      padding: 0.5rem 1rem; border-radius: 20px;
+      background: rgba(255,138,66,0.1); border: 1px solid rgba(255,138,66,0.2);
+      font-size: 0.85rem; font-weight: 600; color: var(--primary-light);
+    }
+    .dash-stats {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 0.75rem;
+    }
+    .stat-card {
+      background: rgba(0,0,0,0.25); border: 1px solid var(--glass-border);
+      border-radius: var(--radius-sm); padding: 1rem; text-align: center;
+    }
+    .stat-value {
+      font-family: var(--font-display); font-size: 1.8rem; font-weight: 700;
+      color: var(--text-bright);
+    }
+    .stat-label { font-size: 0.78rem; color: var(--text-dim); margin-top: 0.2rem; }
+    .stat-value.gold { color: var(--accent-gold); }
+    .stat-value.coral { color: var(--accent-coral); }
+    .stat-value.teal { color: var(--accent-teal); }
+
+    .dash-panel {
+      background: rgba(0,0,0,0.2); border: 1px solid var(--glass-border);
+      border-radius: var(--radius); padding: 1.25rem;
+    }
+    .dash-panel h3 {
+      font-family: var(--font-display); font-size: 1.05rem;
+      margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem;
+    }
+
+    /* Current puzzle preview (host sees answer) */
+    .host-puzzle-area {
+      display: flex; gap: 1.25rem; align-items: flex-start; flex-wrap: wrap;
+    }
+    .host-puzzle-img {
+      max-width: 320px; max-height: 240px; border-radius: var(--radius-sm);
+      object-fit: contain; border: 1px solid var(--glass-border);
+    }
+    .host-puzzle-info { flex: 1; min-width: 200px; }
+    .host-answer {
+      font-family: var(--font-display); font-size: 1.4rem; font-weight: 700;
+      color: var(--accent-gold); margin-bottom: 0.5rem;
+    }
+    .host-hint-text { font-size: 0.9rem; color: var(--text-dim); margin-bottom: 0.25rem; }
+    .host-guessed-count {
+      margin-top: 0.75rem; font-size: 0.9rem; color: var(--accent-teal);
+    }
+
+    /* Timer in dashboard */
+    .dash-timer {
+      height: 8px; background: rgba(0,0,0,0.3); border-radius: 4px;
+      overflow: hidden; margin-top: 0.75rem;
+    }
+    .dash-timer-fill {
+      height: 100%; border-radius: 4px; transition: width 0.1s linear;
+      background: linear-gradient(90deg, var(--accent-teal), var(--success));
+    }
+    .dash-timer-fill.warn { background: linear-gradient(90deg, #ffd43b, #ffa94d); }
+    .dash-timer-fill.danger { background: linear-gradient(90deg, #ff6b6b, #ff4757); }
+    .dash-timer-text {
+      text-align: right; font-size: 0.8rem; color: var(--text-dim);
+      margin-top: 0.25rem; font-weight: 600;
+    }
+
+    /* Leaderboard in dashboard */
+    .dash-lb-row {
+      display: flex; align-items: center; gap: 0.5rem;
+      padding: 0.5rem 0.75rem; border-radius: 8px; font-size: 0.9rem;
+      margin-bottom: 0.3rem; background: rgba(255,255,255,0.02);
+      transition: background 0.2s;
+    }
+    .dash-lb-row.guessed { background: rgba(81,207,102,0.08); border-left: 3px solid var(--success); }
+    .dash-lb-rank { font-weight: 700; min-width: 30px; }
+    .dash-lb-name { flex: 1; }
+    .dash-lb-score { font-weight: 700; color: var(--accent-gold); font-family: var(--font-display); }
+
+    /* Game over panel */
+    .dash-gameover {
+      text-align: center; padding: 2rem;
+    }
+    .dash-gameover h2 {
+      font-family: var(--font-display); font-size: 2rem;
+      background: linear-gradient(135deg, var(--accent-gold), var(--accent-coral));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      margin-bottom: 1rem;
+    }
+    .dash-winner {
+      font-size: 1.3rem; color: var(--accent-gold); font-weight: 700;
+      margin-bottom: 1.5rem;
+    }
+
+    /* Round result bar */
+    .round-result-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0.75rem 1rem; background: rgba(81,207,102,0.06);
+      border: 1px solid rgba(81,207,102,0.15); border-radius: var(--radius-sm);
+      margin-bottom: 0.75rem;
+    }
+    .round-result-answer {
+      font-family: var(--font-display); font-size: 1.1rem;
+      color: var(--success); font-weight: 700;
+    }
+
+    /* Controls area */
+    .dash-controls {
+      display: flex; gap: 0.75rem; flex-wrap: wrap; justify-content: center;
+    }
+  </style>
 </head>
 <body>
   <div class="particles" id="particles"></div>
@@ -22,7 +144,7 @@
     <div class="upload-zone" id="uploadZone">
       <div class="upload-icon">📁</div>
       <p class="upload-text">Drag & drop puzzle images here</p>
-      <p class="upload-hint">or click to browse (max 5MB each)</p>
+      <p class="upload-hint">or click to browse (max 5MB each, up to 50 images)</p>
       <input type="file" id="fileInput" multiple accept="image/*" hidden>
     </div>
 
@@ -54,7 +176,7 @@
         </div>
       </div>
       <button class="btn btn-primary btn-lg btn-full" id="createGameBtn">
-        🚀 Create Game
+        🚀 Create Game Room
       </button>
     </div>
 
@@ -64,7 +186,7 @@
     </div>
   </main>
 
-  <!-- Step 2: Lobby (after creating game) -->
+  <!-- Step 2: Lobby -->
   <main class="lobby-page" id="lobbyView" style="display:none;">
     <div class="lobby-card">
       <h1 class="page-title">🎮 Game Lobby</h1>
@@ -81,6 +203,9 @@
       <div class="player-list-section">
         <h3>👥 Players (<span id="lobbyPlayerCount">0</span>)</h3>
         <div class="player-grid" id="lobbyPlayerList"></div>
+        <p id="noPlayersMsg" style="color: var(--text-dim); font-size: 0.9rem; margin-top: 0.5rem;">
+          Waiting for players to join...
+        </p>
       </div>
 
       <div class="lobby-config">
@@ -93,9 +218,85 @@
     </div>
   </main>
 
+  <!-- Step 3: Host Dashboard (during game) -->
+  <main class="host-page" id="dashboardView" style="display:none;">
+    <div class="host-dashboard">
+      <div class="dash-header">
+        <h1 class="dash-title">🎯 Host Dashboard</h1>
+        <div class="dash-badge">
+          <span class="pulse-dot"></span>
+          Room: <strong id="dashRoomCode">------</strong>
+        </div>
+      </div>
+
+      <!-- Stats Row -->
+      <div class="dash-stats">
+        <div class="stat-card">
+          <div class="stat-value gold" id="dashRound">-</div>
+          <div class="stat-label">Round</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value teal" id="dashPlayers">0</div>
+          <div class="stat-label">Players Online</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value coral" id="dashGuessed">0</div>
+          <div class="stat-label">Guessed</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="dashTimer">--</div>
+          <div class="stat-label">Time Left</div>
+        </div>
+      </div>
+
+      <!-- Current Puzzle (host sees answer) -->
+      <div class="dash-panel" id="dashPuzzlePanel">
+        <h3>🧩 Current Puzzle</h3>
+        <div class="host-puzzle-area">
+          <img id="dashPuzzleImg" class="host-puzzle-img" src="" alt="Current Puzzle">
+          <div class="host-puzzle-info">
+            <div class="host-answer" id="dashAnswer">---</div>
+            <div class="host-hint-text" id="dashHint">Hint will appear at 60% time</div>
+            <div class="host-guessed-count" id="dashGuessedText">0 / 0 players guessed</div>
+            <div class="dash-timer">
+              <div class="dash-timer-fill" id="dashTimerBar" style="width:100%"></div>
+            </div>
+            <div class="dash-timer-text" id="dashTimerText">--s</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Round Result -->
+      <div class="dash-panel" id="dashRoundResult" style="display:none;">
+        <div class="round-result-bar">
+          <span>✅ Round complete! Answer:</span>
+          <span class="round-result-answer" id="dashResultAnswer">---</span>
+        </div>
+      </div>
+
+      <!-- Leaderboard -->
+      <div class="dash-panel" id="dashLeaderboardPanel">
+        <h3>🏆 Live Leaderboard</h3>
+        <div id="dashLeaderboard"></div>
+      </div>
+
+      <!-- Game Over Panel -->
+      <div class="dash-panel" id="dashGameOver" style="display:none;">
+        <div class="dash-gameover">
+          <h2>🎉 Game Over!</h2>
+          <div class="dash-winner" id="dashWinner"></div>
+          <div id="dashFinalLeaderboard"></div>
+          <div class="dash-controls" style="margin-top: 1.5rem;">
+            <a href="host.html" class="btn btn-primary btn-lg">🔄 Host New Game</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
   <script src="/socket.io/socket.io.js"></script>
   <script>
-    // Particles
+    // ─── Particles ───
     const particlesEl = document.getElementById('particles');
     for (let i = 0; i < 20; i++) {
       const p = document.createElement('div');
@@ -108,16 +309,41 @@
       particlesEl.appendChild(p);
     }
 
+    // ─── State ───
     let puzzles = [];
     let roomCode = null;
     let socket = null;
+    let timerInterval = null;
+    let timeRemaining = 0;
+    let totalTime = 30;
+    let totalRounds = 0;
+    let currentRound = 0;
+    let onlinePlayerCount = 0;
+    let guessedCount = 0;
 
     const uploadZone = document.getElementById('uploadZone');
     const fileInput = document.getElementById('fileInput');
     const puzzleList = document.getElementById('puzzleList');
     const configSection = document.getElementById('configSection');
 
-    // Drag & Drop
+    // ─── Views ───
+    function showSetup() {
+      document.getElementById('setupView').style.display = 'flex';
+      document.getElementById('lobbyView').style.display = 'none';
+      document.getElementById('dashboardView').style.display = 'none';
+    }
+    function showLobby() {
+      document.getElementById('setupView').style.display = 'none';
+      document.getElementById('lobbyView').style.display = 'flex';
+      document.getElementById('dashboardView').style.display = 'none';
+    }
+    function showDashboard() {
+      document.getElementById('setupView').style.display = 'none';
+      document.getElementById('lobbyView').style.display = 'none';
+      document.getElementById('dashboardView').style.display = 'flex';
+    }
+
+    // ─── Drag & Drop ───
     uploadZone.addEventListener('click', () => fileInput.click());
     uploadZone.addEventListener('dragover', (e) => { e.preventDefault(); uploadZone.classList.add('dragover'); });
     uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
@@ -159,7 +385,6 @@
         puzzleList.appendChild(card);
       });
 
-      // Bind events
       document.querySelectorAll('.answer-input').forEach(input => {
         input.addEventListener('input', (e) => {
           puzzles[e.target.dataset.index].answer = e.target.value;
@@ -175,7 +400,7 @@
       configSection.style.display = puzzles.length > 0 ? 'block' : 'none';
     }
 
-    // Create Game
+    // ─── Create Game ───
     document.getElementById('createGameBtn').addEventListener('click', async () => {
       const unanswered = puzzles.filter(p => !p.answer.trim());
       if (puzzles.length === 0) return alert('Please upload at least one puzzle image!');
@@ -185,15 +410,13 @@
       loading.style.display = 'flex';
 
       try {
-        // Create room
         const res = await fetch('/api/create-room', { method: 'POST' });
         const { roomCode: code } = await res.json();
         roomCode = code;
 
-        // Upload images
         const formData = new FormData();
         const answers = [];
-        puzzles.forEach((p, i) => {
+        puzzles.forEach((p) => {
           formData.append('images', p.file);
           answers.push(p.answer.trim());
         });
@@ -201,7 +424,7 @@
 
         await fetch(`/api/upload/${roomCode}`, { method: 'POST', body: formData });
 
-        // Connect as host
+        // Connect as host (spectator only)
         socket = io();
         const sessionId = localStorage.getItem('rebus_host_session') || crypto.randomUUID();
         localStorage.setItem('rebus_host_session', sessionId);
@@ -209,17 +432,77 @@
         socket.emit('host-join', { roomCode, sessionId });
 
         socket.on('host-joined', () => {
-          showLobby();
+          initLobby();
         });
 
+        // Lobby events
         socket.on('player-joined', ({ playerName, playerCount, players }) => {
+          onlinePlayerCount = playerCount;
           document.getElementById('lobbyPlayerCount').textContent = playerCount;
+          document.getElementById('noPlayersMsg').style.display = playerCount > 0 ? 'none' : 'block';
           renderLobbyPlayers(players);
+          // Also update dashboard if visible
+          document.getElementById('dashPlayers').textContent = playerCount;
         });
 
         socket.on('player-left', ({ playerName, playerCount, players }) => {
+          onlinePlayerCount = playerCount;
           document.getElementById('lobbyPlayerCount').textContent = playerCount;
           renderLobbyPlayers(players);
+          document.getElementById('dashPlayers').textContent = playerCount;
+        });
+
+        // Game events (host dashboard)
+        socket.on('new-round', (data) => {
+          showDashboard();
+          startDashRound(data);
+        });
+
+        socket.on('hint', ({ level, text }) => {
+          document.getElementById('dashHint').textContent = '💡 Hint: ' + text;
+        });
+
+        socket.on('leaderboard-update', (leaderboard) => {
+          renderDashLeaderboard(leaderboard);
+        });
+
+        socket.on('player-guessed', ({ playerName, match }) => {
+          guessedCount++;
+          document.getElementById('dashGuessed').textContent = guessedCount;
+          document.getElementById('dashGuessedText').textContent = 
+            `${guessedCount} / ${onlinePlayerCount} players guessed`;
+        });
+
+        socket.on('round-end', (data) => {
+          clearInterval(timerInterval);
+          document.getElementById('dashRoundResult').style.display = 'block';
+          document.getElementById('dashResultAnswer').textContent = data.correctAnswer;
+          document.getElementById('dashPuzzlePanel').style.display = 'none';
+          renderDashLeaderboard(data.leaderboard);
+        });
+
+        socket.on('game-over', (data) => {
+          clearInterval(timerInterval);
+          document.getElementById('dashPuzzlePanel').style.display = 'none';
+          document.getElementById('dashRoundResult').style.display = 'none';
+          document.getElementById('dashGameOver').style.display = 'block';
+          
+          const winner = data.leaderboard[0];
+          document.getElementById('dashWinner').textContent = winner 
+            ? `🥇 Winner: ${winner.name} — ${winner.score} pts` 
+            : 'No players!';
+          
+          const flb = document.getElementById('dashFinalLeaderboard');
+          flb.innerHTML = data.leaderboard.map((p, i) => {
+            const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`;
+            return `
+              <div class="dash-lb-row ${p.guessedThisRound ? 'guessed' : ''}">
+                <span class="dash-lb-rank">${medal}</span>
+                <span class="dash-lb-name">${escapeHtml(p.name)}${!p.online ? ' 💤' : ''}</span>
+                <span class="dash-lb-score">${p.score} pts</span>
+              </div>
+            `;
+          }).join('');
         });
 
       } catch (err) {
@@ -229,10 +512,9 @@
       }
     });
 
-    function showLobby() {
-      document.getElementById('setupView').style.display = 'none';
-      document.getElementById('lobbyView').style.display = 'flex';
-
+    // ─── Lobby ───
+    function initLobby() {
+      showLobby();
       document.getElementById('lobbyRoomCode').textContent = roomCode;
       const link = `${window.location.origin}/game.html?room=${roomCode}`;
       document.getElementById('shareLink').value = link;
@@ -240,10 +522,13 @@
       const roundsVal = document.getElementById('roundsSelect').value;
       const rounds = roundsVal === 'all' ? puzzles.length : parseInt(roundsVal);
       const time = document.getElementById('timeSelect').value;
+      totalTime = parseInt(time);
+      totalRounds = Math.min(rounds, puzzles.length);
 
       document.getElementById('lobbyPuzzleCount').textContent = puzzles.length;
-      document.getElementById('lobbyRounds').textContent = Math.min(rounds, puzzles.length);
+      document.getElementById('lobbyRounds').textContent = totalRounds;
       document.getElementById('lobbyTime').textContent = time + 's';
+      document.getElementById('dashRoomCode').textContent = roomCode;
     }
 
     function renderLobbyPlayers(players) {
@@ -251,7 +536,7 @@
       list.innerHTML = players.map(p => `
         <div class="player-tag ${p.online ? '' : 'offline'}">
           <span class="player-dot ${p.online ? 'online' : 'offline'}"></span>
-          ${p.name}
+          ${escapeHtml(p.name)}
         </div>
       `).join('');
     }
@@ -265,15 +550,82 @@
     });
 
     document.getElementById('startGameBtn').addEventListener('click', () => {
+      if (onlinePlayerCount === 0) return alert('Wait for at least one player to join!');
       const roundsVal = document.getElementById('roundsSelect').value;
       const rounds = roundsVal === 'all' ? puzzles.length : parseInt(roundsVal);
       const timePerRound = parseInt(document.getElementById('timeSelect').value);
 
       socket.emit('start-game', { roomCode, rounds: Math.min(rounds, puzzles.length), timePerRound });
-
-      // Redirect host to game page
-      window.location.href = `game.html?room=${roomCode}&host=true`;
+      // Host stays on this page — dashboard will show via 'new-round' event
     });
+
+    // ─── Host Dashboard Round ───
+    function startDashRound(data) {
+      currentRound = data.roundNum;
+      totalRounds = data.totalRounds;
+      totalTime = data.timePerRound;
+      timeRemaining = data.remainingTime != null ? data.remainingTime : totalTime;
+      guessedCount = 0;
+
+      // Show puzzle panel, hide result/gameover
+      document.getElementById('dashPuzzlePanel').style.display = 'block';
+      document.getElementById('dashRoundResult').style.display = 'none';
+      document.getElementById('dashGameOver').style.display = 'none';
+
+      // Update stats
+      document.getElementById('dashRound').textContent = `${data.roundNum}/${data.totalRounds}`;
+      document.getElementById('dashGuessed').textContent = '0';
+      document.getElementById('dashGuessedText').textContent = `0 / ${onlinePlayerCount} players guessed`;
+
+      // Show puzzle image + answer (host can see answer)
+      document.getElementById('dashPuzzleImg').src = data.image;
+      // Find the answer from our local puzzles array
+      const puzzleIdx = data.roundNum - 1;
+      const answer = puzzles[puzzleIdx] ? puzzles[puzzleIdx].answer : '—';
+      document.getElementById('dashAnswer').textContent = `Answer: ${answer}`;
+      document.getElementById('dashHint').textContent = 'Hint will appear at 60% time';
+
+      // Start timer
+      clearInterval(timerInterval);
+      updateDashTimer();
+      timerInterval = setInterval(() => {
+        timeRemaining = Math.max(0, timeRemaining - 0.1);
+        updateDashTimer();
+        if (timeRemaining <= 0) clearInterval(timerInterval);
+      }, 100);
+    }
+
+    function updateDashTimer() {
+      const pct = (timeRemaining / totalTime) * 100;
+      const bar = document.getElementById('dashTimerBar');
+      bar.style.width = pct + '%';
+      if (pct > 50) bar.className = 'dash-timer-fill';
+      else if (pct > 25) bar.className = 'dash-timer-fill warn';
+      else bar.className = 'dash-timer-fill danger';
+      document.getElementById('dashTimerText').textContent = Math.ceil(timeRemaining) + 's';
+      document.getElementById('dashTimer').textContent = Math.ceil(timeRemaining) + 's';
+    }
+
+    function renderDashLeaderboard(leaderboard) {
+      const lb = document.getElementById('dashLeaderboard');
+      lb.innerHTML = leaderboard.map((p, i) => {
+        const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`;
+        return `
+          <div class="dash-lb-row ${p.guessedThisRound ? 'guessed' : ''}">
+            <span class="dash-lb-rank">${medal}</span>
+            <span class="dash-lb-name">${escapeHtml(p.name)}${!p.online ? ' 💤' : ''}</span>
+            <span class="dash-lb-score">${p.score} pts</span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // ─── Helpers ───
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
   </script>
 </body>
 </html>
