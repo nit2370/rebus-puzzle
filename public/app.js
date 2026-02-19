@@ -7,8 +7,10 @@
     let playerId = null;
     let sessionId = localStorage.getItem('rebus_session_' + roomCode);
     let timerInterval = null;
-    let timeRemaining = 0;
-    let totalTime = 30;
+    let timerStartedAt = null;  // local timestamp when timer started
+    let totalTime = 30;         // seconds per round
+    let serverOffset = 0;       // server-client time difference
+    let roundEndAt = null;      // local timestamp when round should end
     let currentView = 'join';
 
     if (!roomCode) {
@@ -173,7 +175,17 @@
         document.getElementById('puzzleImage').src = data.image;
 
         totalTime = data.timePerRound;
-        timeRemaining = data.remainingTime != null ? data.remainingTime : totalTime;
+
+        // Calculate accurate remaining time using server timestamps
+        if (data.serverTime && data.roundStartTime) {
+            const serverElapsed = (data.serverTime - data.roundStartTime) / 1000;
+            const remaining = Math.max(0, totalTime - serverElapsed);
+            roundEndAt = Date.now() + (remaining * 1000);
+        } else if (data.remainingTime != null) {
+            roundEndAt = Date.now() + (data.remainingTime * 1000);
+        } else {
+            roundEndAt = Date.now() + (totalTime * 1000);
+        }
 
         // Reset UI
         document.getElementById('guessSection').style.display = 'block';
@@ -185,22 +197,31 @@
         document.getElementById('submitGuessBtn').disabled = false;
         document.getElementById('guessInput').focus();
 
-        // Timer
+        // Start timer using absolute end time (no drift)
         startTimer();
     }
 
     function startTimer() {
-        clearInterval(timerInterval);
+        stopTimer();
         updateTimerUI();
         timerInterval = setInterval(() => {
-            timeRemaining = Math.max(0, timeRemaining - 0.1);
             updateTimerUI();
-            if (timeRemaining <= 0) clearInterval(timerInterval);
-        }, 100);
+            const remaining = (roundEndAt - Date.now()) / 1000;
+            if (remaining <= 0) stopTimer();
+        }, 50); // Update every 50ms for smoother animation
+    }
+
+    function stopTimer() {
+        if (timerInterval) {
+            clearInterval(timerInterval);
+            timerInterval = null;
+        }
     }
 
     function updateTimerUI() {
-        const pct = (timeRemaining / totalTime) * 100;
+        const now = Date.now();
+        const remaining = Math.max(0, (roundEndAt - now) / 1000);
+        const pct = (remaining / totalTime) * 100;
         const bar = document.getElementById('timerBar');
         bar.style.width = pct + '%';
 
@@ -208,7 +229,7 @@
         else if (pct > 25) bar.className = 'timer-bar yellow';
         else bar.className = 'timer-bar red';
 
-        document.getElementById('timerText').textContent = Math.ceil(timeRemaining) + 's';
+        document.getElementById('timerText').textContent = Math.ceil(remaining) + 's';
     }
 
     // ─── Guessing ───
@@ -248,7 +269,7 @@
         document.getElementById('guessSection').style.display = 'none';
         document.getElementById('answeredSection').style.display = 'flex';
         document.getElementById('earnedScore').textContent = score;
-        clearInterval(timerInterval);
+        stopTimer();
     }
 
     function showGuessNotification(playerName, match) {
@@ -279,7 +300,7 @@
 
     // ─── Round Results ───
     function showRoundResults(data) {
-        clearInterval(timerInterval);
+        stopTimer();
         showView('roundResultView');
         document.getElementById('resultRound').textContent = data.roundNum;
         document.getElementById('correctAnswerText').textContent = data.correctAnswer;
@@ -297,14 +318,15 @@
       `;
         }).join('');
 
-        document.getElementById('nextRoundText').textContent = data.isLastRound
+        const nextText = data.isLastRound
             ? 'Final results coming...'
-            : 'Next round starting in 5 seconds...';
+            : `Next round starting in ${data.nextRoundIn || 5} seconds...`;
+        document.getElementById('nextRoundText').textContent = nextText;
     }
 
     // ─── Game Over ───
     function showGameOver(data) {
-        clearInterval(timerInterval);
+        stopTimer();
         showView('gameOverView');
         launchConfetti();
 

@@ -402,7 +402,9 @@ function startRound(room) {
     roundNum: room.currentRound + 1,
     totalRounds: room.totalRounds,
     image: puzzle.image,
-    timePerRound: room.timePerRound
+    timePerRound: room.timePerRound,
+    serverTime: Date.now(),
+    roundStartTime: room.roundStartTime
   });
 
   io.to(room.code).emit('leaderboard-update', getLeaderboard(room));
@@ -430,7 +432,8 @@ function endRound(room) {
     roundNum: room.currentRound + 1,
     totalRounds: room.totalRounds,
     leaderboard: getLeaderboard(room),
-    isLastRound: room.currentRound >= room.totalRounds - 1
+    isLastRound: room.currentRound >= room.totalRounds - 1,
+    nextRoundIn: room.currentRound < room.totalRounds - 1 ? 5 : 0
   });
 
   // Auto-advance after 5 seconds if not last round

@@ -314,7 +314,7 @@
     let roomCode = null;
     let socket = null;
     let timerInterval = null;
-    let timeRemaining = 0;
+    let roundEndAt = null;
     let totalTime = 30;
     let totalRounds = 0;
     let currentRound = 0;
@@ -564,8 +564,18 @@
       currentRound = data.roundNum;
       totalRounds = data.totalRounds;
       totalTime = data.timePerRound;
-      timeRemaining = data.remainingTime != null ? data.remainingTime : totalTime;
       guessedCount = 0;
+
+      // Calculate accurate remaining time using server timestamps
+      if (data.serverTime && data.roundStartTime) {
+        const serverElapsed = (data.serverTime - data.roundStartTime) / 1000;
+        const remaining = Math.max(0, totalTime - serverElapsed);
+        roundEndAt = Date.now() + (remaining * 1000);
+      } else if (data.remainingTime != null) {
+        roundEndAt = Date.now() + (data.remainingTime * 1000);
+      } else {
+        roundEndAt = Date.now() + (totalTime * 1000);
+      }
 
       // Show puzzle panel, hide result/gameover
       document.getElementById('dashPuzzlePanel').style.display = 'block';
@@ -586,24 +596,32 @@
       document.getElementById('dashHint').textContent = 'Hint will appear at 60% time';
 
       // Start timer
-      clearInterval(timerInterval);
-      updateDashTimer();
-      timerInterval = setInterval(() => {
-        timeRemaining = Math.max(0, timeRemaining - 0.1);
+      startDashTimer();
+    }
+
+    function startDashTimer() {
+        clearInterval(timerInterval);
         updateDashTimer();
-        if (timeRemaining <= 0) clearInterval(timerInterval);
-      }, 100);
+        timerInterval = setInterval(() => {
+            updateDashTimer();
+            if ((roundEndAt - Date.now()) <= 0) clearInterval(timerInterval);
+        }, 50);
     }
 
     function updateDashTimer() {
-      const pct = (timeRemaining / totalTime) * 100;
+      const now = Date.now();
+      const remaining = Math.max(0, (roundEndAt - now) / 1000);
+      const pct = (remaining / totalTime) * 100;
+      
       const bar = document.getElementById('dashTimerBar');
       bar.style.width = pct + '%';
       if (pct > 50) bar.className = 'dash-timer-fill';
       else if (pct > 25) bar.className = 'dash-timer-fill warn';
       else bar.className = 'dash-timer-fill danger';
-      document.getElementById('dashTimerText').textContent = Math.ceil(timeRemaining) + 's';
-      document.getElementById('dashTimer').textContent = Math.ceil(timeRemaining) + 's';
+      
+      const text = Math.ceil(remaining) + 's';
+      document.getElementById('dashTimerText').textContent = text;
+      document.getElementById('dashTimer').textContent = text;
     }
 
     function renderDashLeaderboard(leaderboard) {
